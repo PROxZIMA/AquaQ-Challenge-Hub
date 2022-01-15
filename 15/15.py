@@ -1,61 +1,47 @@
 from os.path import realpath
-from collections import defaultdict
-from re import findall
-import time
+from collections import deque, defaultdict
+from typing import Union
 
 
-def shortestPath(source: str, dest: str, word: str) -> str:
-    l = len(source)
-    check = defaultdict(lambda: False)                  # True if visited a word
-    chains = [source]                                   # List of all possible chains of 2-2 or 3-3 from source at a time
+def construct_dict(wordList: set) -> defaultdict:
+    d = defaultdict(list)
+    for word in wordList:
+        for i in range(len(word)):
+            s = word[:i] + '*' + word[i+1:]
+            d[s].append(word)
+    return d
 
-    while True:
-        newChains = []                                  # New chains with 1 extra word
-        for chain in chains:
-            curr = chain[-l:]                           # Pick up last word of the chain
-            if not check[curr]:
-                check[curr] = True                      # Find all valid words that can be made from 'curr' by changing 1 character
-                for end in (x for i in range(l) for x in findall(fr'\b{curr[:i]}\w{curr[i+1:]}\b', word) if x != curr):
-                    if end == dest:
-                        return f'{chain} {end}'
-                    newChains.append(f'{chain} {end}')  # Append to the new collection of chains
 
-        chains = newChains                              # Store your new collection
-        if not len(chain):
-            break
+def shortestPath(source: str, dest: str, d: defaultdict) -> Union[int, list]:
+    queue, visited = deque([(source, 1, [source])]), set()
+    while queue:
+        word, step, path = queue.popleft()
+        if word not in visited:
+            visited.add(word)
+            if word == dest:
+                return step, path
+            for i in range(len(word)):
+                s = word[:i] + '*' + word[i+1:]
+                for neighbor in d[s]:
+                    if neighbor not in visited:
+                        queue.append((neighbor, step + 1, path + [neighbor]))
+    return 0, []
 
 
 def main():
     inp = open(f'{realpath(__file__)[:-2]}txt').read()
     word = open(f'{realpath(__file__)[:-5]}word.txt').read()
+    wordDict = construct_dict(set(word.split('\n')))
 
-    print('Product = 97920000.\nCan\'t come up with anything good. Sit back and enjoy. This took 12 min with pypy3.\n')
     product = 1
-    t = time.time()
 
     for k in inp.split('\n'):
-        t1 = time.time()
-        x = shortestPath(*k.split(','), word)
-        l = len(x.split())
-        product *= l
-        print(x, l)
-        print(f'\tTime took = {round(time.time() - t1, 2)} s')
+        step, path = shortestPath(*k.split(','), wordDict)
+        product *= step
+        print(step, ', '.join(path))
 
     print(f'\nAnswer = {product}')
-    print(f'Total time = {round((time.time() - t)/60, 2)} min')
 
 
 if __name__ == '__main__':
     main()
-
-
-# dog wog wag war 4
-# bow pow paw pay ply 5
-# tree free flee fled 4
-# fire fare pare park 4
-# forge gorge gorse horse house 5
-# stall still shill chill chili 5
-# start scart scant scent shent sheet sleet gleet greet great 10
-# inner inter enter eater oater outer 6
-# asking tsking toking coking coning conins conies conges longes lunges lungee bungee burgee burgle burble bubble bobble 17
-# coffee coffer confer conker cooker cooter coater crater craver braver brawer drawer 12
